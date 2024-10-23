@@ -1,0 +1,104 @@
+---
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      project:
+        type: string
+        required: true
+      tag:
+        type: string
+        required: true
+      repo:
+        type: string
+        required: true
+      packages:
+        type: string
+        required: true
+      containers:
+        type: string
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    if: ${{ inputs.tag != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ${{ fromJSON(inputs.packages) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Checkout ${{ inputs.project }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repo }}
+          ref: ${{ inputs.tag }}
+          path: src
+
+      - name: Setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Setup goreleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          install-only: true
+
+      - name: Build
+        run: |
+          python3 -mpip install pygithub ruamel.yaml
+          ./generate.py goreleaser '${{ inputs.project }}' '${{ matrix.package }}'
+          cd src
+          goreleaser release --config=../.goreleaser.yaml --clean
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.project }}#${{ matrix.package }}
+          path: dist/${{ matrix.package }}-*.tar.gz
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ inputs.project }}#*
+          path: ./dist/
+          merge-multiple: true
+
+      - name: Create release
+        run: |
+          PREVIOUS=$(gh release list --json=tagName --jq="first(.[] | select(.tagName | startswith(\"${{ inputs.project }}-\"))).tagName" || true)
+          if [ -n "$PREVIOUS" ]; then
+            gh release delete --cleanup-tag --yes $PREVIOUS
+          fi
+          TAG="${{ inputs.project }}-${{ inputs.tag }}"
+          gh release create --latest=true --notes=$TAG --title=$TAG $TAG ./dist/*.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  container:
+    needs: release
+    uses: ./.github/workflows/container.yaml
+    with:
+      project: ${{ inputs.project }}
+      tag: ${{ inputs.tag }}
+      containers: ${{ inputs.containers }}
