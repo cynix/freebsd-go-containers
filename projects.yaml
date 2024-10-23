@@ -1,0 +1,55 @@
+---
+cloudflared:
+  repo: cloudflare/cloudflared
+  packages:
+    cloudflared:
+      container:
+        user: cloudflared=443
+  build:
+    flags:
+      - -mod=vendor
+    ldflags:
+      - -X=main.Version={{ .Version }}
+      - -X=main.BuildTime={{ .Date }}
+
+sing-box:
+  repo: sagernet/sing-box
+  packages:
+    sing-box:
+      container:
+        user: sing-box=360 # v2ray
+  build:
+    ldflags:
+      - -X=github.com/sagernet/sing-box/constant.Version={{ .Version }}
+    tags:
+      - with_gvisor
+      - with_quic
+      - with_dhcp
+      - with_wireguard
+      - with_ech
+      - with_utls
+      - with_reality_server
+      - with_acme
+      - with_clash_api
+
+victoria-metrics:
+  repo: VictoriaMetrics/VictoriaMetrics
+  packages:
+    victoria-metrics:
+      container:
+        user: victoria-metrics=289
+    vmutils:
+      binaries:
+        - vmagent
+        - vmalert
+        - vmauth
+        - vmbackup
+        - vmctl
+        - vmrestore
+  build:
+    main: ./app/{binary}
+    ldflags:
+      - '-X=github.com/VictoriaMetrics/VictoriaMetrics/lib/buildinfo.Version={{ .Version }}'
+    tags:
+      - netgo
+      - osusergo

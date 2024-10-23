@@ -1,0 +1,23 @@
+name: Dispatch
+
+on:
+  workflow_dispatch:
+    inputs: {}
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  dispatch:
+    strategy:
+      matrix:
+        include: []
+    name: ${{ matrix.project }}
+    uses: ./.github/workflows/build.yaml
+    with:
+      project: ${{ matrix.project }}
+      tag: ${{ inputs[matrix.project] }}
+      repo: ${{ matrix.repo }}
+      packages: ${{ matrix.packages }}
+      containers: ${{ matrix.containers }}

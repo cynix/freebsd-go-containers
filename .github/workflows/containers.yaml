@@ -1,0 +1,38 @@
+name: Containers
+
+on:
+  workflow_dispatch:
+    inputs:
+      cloudflared:
+        type: boolean
+        required: true
+        default: false
+      sing-box:
+        type: boolean
+        required: true
+        default: false
+      victoria-metrics:
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  packages: write
+
+jobs:
+  containers:
+    strategy:
+      matrix:
+        include:
+          - project: cloudflared
+            containers: '["cloudflared"]'
+          - project: sing-box
+            containers: '["sing-box"]'
+          - project: victoria-metrics
+            containers: '["victoria-metrics"]'
+    name: ${{ matrix.project }}
+    uses: ./.github/workflows/container.yaml
+    with:
+      project: ${{ matrix.project }}
+      tag: ${{ inputs[matrix.project] && 'latest' || '' }}
+      containers: ${{ matrix.containers }}

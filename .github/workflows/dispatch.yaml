@@ -1,0 +1,44 @@
+name: Dispatch
+
+on:
+  workflow_dispatch:
+    inputs:
+      cloudflared:
+        type: string
+        required: false
+      sing-box:
+        type: string
+        required: false
+      victoria-metrics:
+        type: string
+        required: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  dispatch:
+    strategy:
+      matrix:
+        include:
+          - project: cloudflared
+            repo: cloudflare/cloudflared
+            packages: '["cloudflared"]'
+            containers: '["cloudflared"]'
+          - project: sing-box
+            repo: sagernet/sing-box
+            packages: '["sing-box"]'
+            containers: '["sing-box"]'
+          - project: victoria-metrics
+            repo: VictoriaMetrics/VictoriaMetrics
+            packages: '["victoria-metrics", "vmutils"]'
+            containers: '["victoria-metrics"]'
+    name: ${{ matrix.project }}
+    uses: ./.github/workflows/build.yaml
+    with:
+      project: ${{ matrix.project }}
+      tag: ${{ inputs[matrix.project] }}
+      repo: ${{ matrix.repo }}
+      packages: ${{ matrix.packages }}
+      containers: ${{ matrix.containers }}

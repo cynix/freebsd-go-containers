@@ -1,0 +1,20 @@
+name: Containers
+
+on:
+  workflow_dispatch:
+    inputs: {}
+
+permissions:
+  packages: write
+
+jobs:
+  containers:
+    strategy:
+      matrix:
+        include: []
+    name: ${{ matrix.project }}
+    uses: ./.github/workflows/container.yaml
+    with:
+      project: ${{ matrix.project }}
+      tag: ${{ inputs[matrix.project] && 'latest' || '' }}
+      containers: ${{ matrix.containers }}
