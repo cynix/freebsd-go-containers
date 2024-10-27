@@ -7,6 +7,10 @@ on:
         type: boolean
         required: true
         default: false
+      step-posture-connector:
+        type: boolean
+        required: true
+        default: false
       sing-box:
         type: boolean
         required: true
@@ -26,6 +30,8 @@ jobs:
         include:
           - project: cloudflared
             containers: '["cloudflared"]'
+          - project: step-posture-connector
+            containers: '["step-posture-connector"]'
           - project: sing-box
             containers: '["sing-box"]'
           - project: victoria-metrics

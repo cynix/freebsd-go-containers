@@ -6,6 +6,9 @@ on:
       cloudflared:
         type: string
         required: false
+      step-posture-connector:
+        type: string
+        required: false
       sing-box:
         type: string
         required: false
@@ -26,6 +29,10 @@ jobs:
             repo: cloudflare/cloudflared
             packages: '["cloudflared"]'
             containers: '["cloudflared"]'
+          - project: step-posture-connector
+            repo: jedda/step-posture-connector
+            packages: '["step-posture-connector"]'
+            containers: '["step-posture-connector"]'
           - project: sing-box
             repo: sagernet/sing-box
             packages: '["sing-box"]'

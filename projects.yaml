@@ -12,6 +12,15 @@ cloudflared:
       - -X=main.Version={{ .Version }}
       - -X=main.BuildTime={{ .Date }}
 
+step-posture-connector:
+  repo: jedda/step-posture-connector
+  packages:
+    step-posture-connector:
+      container:
+        user: step-posture-connector=266 # step
+  build:
+    main: .
+
 sing-box:
   repo: sagernet/sing-box
   packages:

@@ -26,7 +26,7 @@ def goreleaser(project: str, package: str, yaml, config) -> None:
         },
     }
 
-    template = config['build']
+    template = config.get('build', {})
 
     template['flags'] = template.get('flags', []) + ['-trimpath']
     template['ldflags'] = template.get('ldflags', []) + ['-buildid=', '-extldflags=-static', '-s', '-w']
