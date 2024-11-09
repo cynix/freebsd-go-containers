@@ -41,6 +41,20 @@ sing-box:
       - with_acme
       - with_clash_api
 
+victoria-logs:
+  repo: VictoriaMetrics/VictoriaMetrics
+  packages:
+    victoria-logs:
+      container:
+        user: victoria-logs=363
+  build:
+    main: ./app/{binary}
+    ldflags:
+      - '-X=github.com/VictoriaMetrics/VictoriaMetrics/lib/buildinfo.Version={{ .Version }}'
+    tags:
+      - netgo
+      - osusergo
+
 victoria-metrics:
   repo: VictoriaMetrics/VictoriaMetrics
   packages:

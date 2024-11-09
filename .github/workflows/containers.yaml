@@ -15,6 +15,10 @@ on:
         type: boolean
         required: true
         default: false
+      victoria-logs:
+        type: boolean
+        required: true
+        default: false
       victoria-metrics:
         type: boolean
         required: true
@@ -34,6 +38,8 @@ jobs:
             containers: '["step-posture-connector"]'
           - project: sing-box
             containers: '["sing-box"]'
+          - project: victoria-logs
+            containers: '["victoria-logs"]'
           - project: victoria-metrics
             containers: '["victoria-metrics"]'
     name: ${{ matrix.project }}

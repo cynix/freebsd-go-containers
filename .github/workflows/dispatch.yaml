@@ -12,6 +12,9 @@ on:
       sing-box:
         type: string
         required: false
+      victoria-logs:
+        type: string
+        required: false
       victoria-metrics:
         type: string
         required: false
@@ -37,6 +40,10 @@ jobs:
             repo: sagernet/sing-box
             packages: '["sing-box"]'
             containers: '["sing-box"]'
+          - project: victoria-logs
+            repo: VictoriaMetrics/VictoriaMetrics
+            packages: '["victoria-logs"]'
+            containers: '["victoria-logs"]'
           - project: victoria-metrics
             repo: VictoriaMetrics/VictoriaMetrics
             packages: '["victoria-metrics", "vmutils"]'
