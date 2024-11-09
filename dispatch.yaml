@@ -19,5 +19,6 @@ jobs:
       project: ${{ matrix.project }}
       tag: ${{ inputs[matrix.project] }}
       repo: ${{ matrix.repo }}
+      cgo: ${{ matrix.cgo }}
       packages: ${{ matrix.packages }}
       containers: ${{ matrix.containers }}

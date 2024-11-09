@@ -6,6 +6,9 @@ on:
       cloudflared:
         type: string
         required: false
+      grafana:
+        type: string
+        required: false
       step-posture-connector:
         type: string
         required: false
@@ -30,22 +33,32 @@ jobs:
         include:
           - project: cloudflared
             repo: cloudflare/cloudflared
+            cgo: false
             packages: '["cloudflared"]'
             containers: '["cloudflared"]'
+          - project: grafana
+            repo: grafana/grafana
+            cgo: true
+            packages: '["grafana"]'
+            containers: '["grafana"]'
           - project: step-posture-connector
             repo: jedda/step-posture-connector
+            cgo: false
             packages: '["step-posture-connector"]'
             containers: '["step-posture-connector"]'
           - project: sing-box
             repo: sagernet/sing-box
+            cgo: false
             packages: '["sing-box"]'
             containers: '["sing-box"]'
           - project: victoria-logs
             repo: VictoriaMetrics/VictoriaMetrics
+            cgo: false
             packages: '["victoria-logs"]'
             containers: '["victoria-logs"]'
           - project: victoria-metrics
             repo: VictoriaMetrics/VictoriaMetrics
+            cgo: false
             packages: '["victoria-metrics", "vmutils"]'
             containers: '["victoria-metrics"]'
     name: ${{ matrix.project }}
@@ -54,5 +67,6 @@ jobs:
       project: ${{ matrix.project }}
       tag: ${{ inputs[matrix.project] }}
       repo: ${{ matrix.repo }}
+      cgo: ${{ matrix.cgo }}
       packages: ${{ matrix.packages }}
       containers: ${{ matrix.containers }}

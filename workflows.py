@@ -15,6 +15,7 @@ def dispatch(projects) -> None:
     dispatch['jobs']['dispatch']['strategy']['matrix']['include'] = [{
         'project': k,
         'repo': v['repo'],
+        'cgo': v.get('cgo', False),
         'packages': json.dumps([x for x in v['packages'].keys()]),
         'containers': json.dumps([k for k, v in v['packages'].items() if 'container' in v]),
     } for k, v in projects.items()]

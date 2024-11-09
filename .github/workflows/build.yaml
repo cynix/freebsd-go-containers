@@ -13,6 +13,9 @@ on:
       repo:
         type: string
         required: true
+      cgo:
+        type: boolean
+        required: true
       packages:
         type: string
         required: true
@@ -32,6 +35,10 @@ jobs:
       matrix:
         package: ${{ fromJSON(inputs.packages) }}
     steps:
+      - name: Free disk space
+        if: ${{ inputs.cgo }}
+        uses: jlumbroso/free-disk-space@main
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -43,23 +50,36 @@ jobs:
           path: src
 
       - name: Setup go
+        if: ${{ !inputs.cgo }}
         uses: actions/setup-go@v5
         with:
           go-version: stable
 
       - name: Setup goreleaser
+        if: ${{ !inputs.cgo }}
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: latest
           install-only: true
 
-      - name: Build
+      - name: Generate
         run: |
           python3 -mpip install pygithub ruamel.yaml
           ./generate.py goreleaser '${{ inputs.project }}' '${{ matrix.package }}'
+
+      - name: Build
+        if: ${{ !inputs.cgo }}
+        run: |
           cd src
           goreleaser release --config=../.goreleaser.yaml --clean
+
+      - name: Build via dockcross
+        if: ${{ inputs.cgo }}
+        run: |
+          docker run ghcr.io/cynix/dockcross-freebsd > build.sh
+          chmod +x build.sh
+          ./build.sh sh -c 'cd src; goreleaser release --config=../.goreleaser.yaml --clean'
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

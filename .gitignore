@@ -1,6 +1,5 @@
 /.goreleaser.yaml
 /Containerfile
-/bin/
 /build.sh
 /dist/
 /src/

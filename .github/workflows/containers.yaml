@@ -7,6 +7,10 @@ on:
         type: boolean
         required: true
         default: false
+      grafana:
+        type: boolean
+        required: true
+        default: false
       step-posture-connector:
         type: boolean
         required: true
@@ -34,6 +38,8 @@ jobs:
         include:
           - project: cloudflared
             containers: '["cloudflared"]'
+          - project: grafana
+            containers: '["grafana"]'
           - project: step-posture-connector
             containers: '["step-posture-connector"]'
           - project: sing-box

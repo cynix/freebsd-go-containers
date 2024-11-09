@@ -12,6 +12,35 @@ cloudflared:
       - -X=main.Version={{ .Version }}
       - -X=main.BuildTime={{ .Date }}
 
+grafana:
+  repo: grafana/grafana
+  cgo: true
+  packages:
+    grafana:
+      binaries:
+        - grafana
+        - grafana-cli
+        - grafana-server
+      container:
+        user: grafana=904
+        files:
+          conf: /usr/local/share/grafana/conf/
+          public: /usr/local/share/grafana/public/
+  before:
+    - env -u GOOS -u GOARCH go run ./pkg/build/wire/cmd/wire/main.go gen -tags=oss ./pkg/server
+    - sh -c 'curl -sSL https://dl.grafana.com/oss/release/grafana-{{ .Version }}.linux-amd64.tar.gz | tar -zxf- --strip-components=1 grafana-v{{ .Version }}/public'
+  build:
+    main: ./pkg/cmd/{binary}
+    ldflags:
+      - -X=main.version={{ .Version }}
+      - -X=main.commit={{ .ShortCommit }}
+    tags:
+      - oss
+  files:
+    - LICENSE
+    - conf/defaults.ini
+    - public/**/*
+
 step-posture-connector:
   repo: jedda/step-posture-connector
   packages:

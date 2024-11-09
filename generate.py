@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
 import os
-import shutil
 import subprocess
 import sys
-import tarfile
 from collections import defaultdict
 from github import Github
 from ruamel.yaml import YAML
@@ -26,6 +24,9 @@ def goreleaser(project: str, package: str, yaml, config) -> None:
         },
     }
 
+    if b := config.get('before', []):
+        goreleaser['before'] = {'hooks': b}
+
     template = config.get('build', {})
 
     template['flags'] = template.get('flags', []) + ['-trimpath']
@@ -33,7 +34,16 @@ def goreleaser(project: str, package: str, yaml, config) -> None:
     template['targets'] = [f"freebsd_{x}" for x in config.get('arch', ['amd64', 'arm64'])]
 
     if 'env' not in template:
-        template['env'] = ['CGO_ENABLED=0']
+        if config.get('cgo'):
+            template['env'] = [
+                'CGO_ENABLED=1',
+                'CGO_CFLAGS=--target={{ if eq .Arch "amd64" }}x86_64{{ else }}aarch64{{ end }}-unknown-freebsd --sysroot=/freebsd/{{ .Arch }}',
+                'CGO_LDFLAGS=--target={{ if eq .Arch "amd64" }}x86_64{{ else }}aarch64{{ end }}-unknown-freebsd --sysroot=/freebsd/{{ .Arch }} -fuse-ld=lld',
+                'PKG_CONFIG_SYSROOT_DIR=/freebsd/{{ .Arch }}',
+                'PKG_CONFIG_PATH=/freebsd/{{ .Arch }}/usr/local/libdata/pkgconfig',
+            ]
+        else:
+            template['env'] = ['CGO_ENABLED=0']
 
     goreleaser['builds'] = []
 
@@ -59,28 +69,20 @@ def container(project: str, tag: str, package: str, config):
 
     container = {
         'base': 'freebsd:static',
-        'binary': project,
+        'binaries': [project],
     } | config['packages'][package]['container']
 
-    binary = container['binary']
+    binaries = container['binaries']
     arch = config.get('arch', ['amd64', 'arm64'])
-    root = f"{project}/{package}"
+    copy = defaultdict(list)
+
+    for k, v in container.get('files', {}).items():
+        copy[v] = [f"dist/${{TARGETARCH}}/{k}"]
+
+    if os.path.exists(f"{project}/{package}"):
+        copy['/'] = [f"{project}/{package}/"]
 
     with open('Containerfile', 'w') as cf:
-        copy = defaultdict(list)
-
-        for d, _, f in os.walk(root):
-            if not f:
-                continue
-
-            if not d.endswith('/'):
-                d += '/'
-
-            if not d.startswith(f"{root}/"):
-                continue
-
-            copy[d.replace(root, '')].extend(f)
-
         if user := container.get('user'):
             if '=' in user:
                 user, uid = user.split('=')
@@ -91,12 +93,12 @@ def container(project: str, tag: str, package: str, config):
                     RUN pw useradd -n {user} -u {uid} -g {user} -d /nonexistent -s /sbin/nologin
                     """), file=cf)
 
-                copy['!/etc/'].extend(['group', 'master.passwd', 'passwd', 'pwd.db', 'spwd.db'])
+                copy['!/etc/'].extend(f"/etc/{x}" for x in ('group', 'master.passwd', 'passwd', 'pwd.db', 'spwd.db'))
 
         print(f"FROM ghcr.io/cynix/{container['base']}", file=cf)
 
         for a in arch:
-            os.makedirs(f"bin/{a}")
+            os.makedirs(f"dist/{a}")
 
             url = None
 
@@ -107,28 +109,15 @@ def container(project: str, tag: str, package: str, config):
             else:
                 raise RuntimeError(f"no asset for {a}")
 
-            subprocess.check_call(['curl', '-sSL', '-o', f"bin/{a}.tarball", url])
+            subprocess.check_call(['curl', '-sSL', '-o', f"dist/{a}.tar.gz", url])
+            subprocess.check_call(['tar', '-C', f"dist/{a}", '-zxf', f"dist/{a}.tar.gz"])
 
-            with tarfile.open(f"bin/{a}.tarball") as tarball:
-                while member := tarball.next():
-                    if not member.isfile() or (member.mode & 0o111) != 0o111:
-                        continue
-
-                    if os.path.basename(member.name) == binary:
-                        bin = f"bin/{a}/{binary}"
-
-                        with open(bin, "wb") as dst:
-                            src = tarball.extractfile(member)
-                            assert src
-                            shutil.copyfileobj(src, dst)
-
-                        os.chmod(bin, 0o755)
-                        break
-                else:
-                    raise RuntimeError(f"{binary} not found in {url}")
+            for b in binaries:
+                if not os.path.exists(f"dist/{a}/{b}"):
+                    raise RuntimeError(f"binary {b} not found")
 
         print('ARG TARGETARCH', file=cf)
-        print(f"COPY bin/${{TARGETARCH}}/{binary} /usr/local/bin/{binary}", file=cf)
+        print(f"COPY --chown=root:wheel --chmod=0755 {' '.join(f'dist/${{TARGETARCH}}/{x}' for x in binaries)} /usr/local/bin/", file=cf)
 
         for dst, files in copy.items():
             if not files:
@@ -137,12 +126,10 @@ def container(project: str, tag: str, package: str, config):
             if dst.startswith('!'):
                 cmd = 'COPY --from=builder'
                 dst = dst[1:]
-                src = ' '.join([f"{dst}{x}" for x in files])
             else:
                 cmd = 'COPY'
-                src = ' '.join([f"{root}{dst}{x}" for x in files])
 
-            print(f"{cmd} {src} {dst}", file=cf)
+            print(f"{cmd} {' '.join(files)} {dst}", file=cf)
 
         if user:
             print(f"USER {user}:{user}", file=cf)
@@ -150,7 +137,7 @@ def container(project: str, tag: str, package: str, config):
         for env, value in config.get('env', {}):
             print(f"ENV {env}={value}", file=cf)
 
-        print(f"ENTRYPOINT [\"/usr/local/bin/{binary}\"]", file=cf)
+        print(f"ENTRYPOINT [\"/usr/local/bin/{binaries[0]}\"]", file=cf)
 
     with open('build.sh', 'w') as sh:
         platform = ','.join([f"freebsd/{x}" for x in arch])
