@@ -61,6 +61,7 @@ jobs:
             cgo: false
             packages: '["victoria-metrics", "vmutils"]'
             containers: '["victoria-metrics"]'
+      fail-fast: false
     name: ${{ matrix.project }}
     uses: ./.github/workflows/build.yaml
     with:
