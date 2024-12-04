@@ -44,11 +44,12 @@ jobs:
 
             mkdir -p /usr/local/etc/pkg/repos
             echo 'FreeBSD: { url: "pkg+https://pkg.freebsd.org/${ABI}/latest" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
-            pkg install -y podman-suite qemu-user-static
-            service qemu_user_static onestart
+            pkg install -y podman-suite
 
-            sed -i '' -e 's/zfs/vfs/g' /usr/local/etc/containers/storage.conf
+            truncate -s 32G /var/tmp/z
             mkdir -p /var/db/containers/storage
+            zpool create -R /var/db/containers/storage -O mountpoint=/ -O compression=lz4 z /var/tmp/z
+
             buildah login -u ${{ github.actor }} -p ${{ github.token }} ghcr.io
 
           run: |
