@@ -54,6 +54,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: stable
+          check-latest: true
 
       - name: Setup goreleaser
         if: ${{ !inputs.cgo }}
@@ -68,11 +69,18 @@ jobs:
           python3 -mpip install pygithub ruamel.yaml
           ./generate.py goreleaser '${{ inputs.project }}' '${{ matrix.package }}'
 
+          if [ -d patches/${{ matrix.package }} ]; then
+            cd src
+            for i in ../patches/${{ matrix.package }}/*.patch; do
+              patch -p1 < $i
+            done
+          fi
+
       - name: Build
         if: ${{ !inputs.cgo }}
         run: |
           cd src
-          goreleaser release --config=../.goreleaser.yaml --clean
+          goreleaser release --config=../.goreleaser.yaml --clean --skip=validate
 
       - name: Build via dockcross
         if: ${{ inputs.cgo }}
