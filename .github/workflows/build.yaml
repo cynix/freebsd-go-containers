@@ -28,8 +28,24 @@ permissions:
   packages: write
 
 jobs:
-  build:
+  calculate:
     if: ${{ inputs.tag != '' }}
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.calculate.outputs.tag }}
+    steps:
+      - id: calculate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ inputs.tag }}"
+          if [ "$TAG" = "latest" ]; then
+            TAG="$(gh release list --repo="${{ inputs.repo }}" --json=tagName,isLatest --jq='.[] | select(.isLatest) | .tagName')"
+          fi
+          echo "tag=$TAG" | tee -a "$GITHUB_OUTPUT"
+
+  build:
+    needs: calculate
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -46,7 +62,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.repo }}
-          ref: ${{ inputs.tag }}
+          ref: ${{ needs.calculate.outputs.tag }}
           path: src
 
       - name: Setup go
@@ -99,7 +115,7 @@ jobs:
           retention-days: 1
 
   release:
-    needs: build
+    needs: [calculate, build]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -118,15 +134,15 @@ jobs:
           if [ -n "$PREVIOUS" ]; then
             gh release delete --cleanup-tag --yes $PREVIOUS
           fi
-          TAG="${{ inputs.project }}-${{ inputs.tag }}"
+          TAG="${{ inputs.project }}-${{ needs.calculate.outputs.tag }}"
           gh release create --latest=true --notes=$TAG --title=$TAG $TAG ./dist/*.tar.gz
         env:
           GH_TOKEN: ${{ github.token }}
 
   container:
-    needs: release
+    needs: [calculate, release]
     uses: ./.github/workflows/container.yaml
     with:
       project: ${{ inputs.project }}
-      tag: ${{ inputs.tag }}
+      tag: ${{ needs.calculate.outputs.tag }}
       containers: ${{ inputs.containers }}
