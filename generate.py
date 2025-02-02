@@ -15,7 +15,7 @@ def goreleaser(project: str, package: str, yaml, config) -> None:
         'project_name': package,
         'dist': '../dist',
         'archives': [{
-            'format': 'tar.gz',
+            'formats': ['tar.gz'],
             'name_template': '{{ .ProjectName }}-{{ .Version }}-{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}',
             'files': config.get('files', ['LICENSE']),
         }],
