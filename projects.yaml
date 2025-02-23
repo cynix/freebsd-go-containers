@@ -90,10 +90,12 @@ victoria-metrics:
     victoria-metrics:
       container:
         user: victoria-metrics=289
+    vmalert:
+      container:
+        user: alertmanager=479
     vmutils:
       binaries:
         - vmagent
-        - vmalert
         - vmauth
         - vmbackup
         - vmctl

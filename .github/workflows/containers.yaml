@@ -47,7 +47,7 @@ jobs:
           - project: victoria-logs
             containers: '["victoria-logs"]'
           - project: victoria-metrics
-            containers: '["victoria-metrics"]'
+            containers: '["victoria-metrics", "vmalert"]'
       fail-fast: false
     name: ${{ matrix.project }}
     uses: ./.github/workflows/container.yaml

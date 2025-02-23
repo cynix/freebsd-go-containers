@@ -59,8 +59,8 @@ jobs:
           - project: victoria-metrics
             repo: VictoriaMetrics/VictoriaMetrics
             cgo: false
-            packages: '["victoria-metrics", "vmutils"]'
-            containers: '["victoria-metrics"]'
+            packages: '["victoria-metrics", "vmalert", "vmutils"]'
+            containers: '["victoria-metrics", "vmalert"]'
       fail-fast: false
     name: ${{ matrix.project }}
     uses: ./.github/workflows/build.yaml
