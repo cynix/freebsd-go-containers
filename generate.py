@@ -88,7 +88,7 @@ def container(project: str, tag: str, package: str, config):
                 user, uid = user.split('=')
 
                 print(dedent(f"""\
-                    FROM --platform=freebsd/amd64 ghcr.io/cynix/freebsd:minimal AS builder
+                    FROM --platform=freebsd/amd64 ghcr.io/cynix/freebsd:runtime AS builder
                     RUN pw groupadd -n {user} -g {uid}
                     RUN pw useradd -n {user} -u {uid} -g {user} -d /nonexistent -s /sbin/nologin
                     """), file=cf)
