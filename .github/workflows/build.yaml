@@ -23,10 +23,6 @@ on:
         type: string
         required: true
 
-permissions:
-  contents: write
-  packages: write
-
 jobs:
   calculate:
     if: ${{ inputs.tag != '' }}
@@ -117,6 +113,8 @@ jobs:
   release:
     needs: [calculate, build]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -130,17 +128,19 @@ jobs:
 
       - name: Create release
         run: |
-          PREVIOUS=$(gh release list --json=tagName --jq="first(.[] | select(.tagName | startswith(\"${{ inputs.project }}-\"))).tagName" || true)
-          if [ -n "$PREVIOUS" ]; then
-            gh release delete --cleanup-tag --yes $PREVIOUS
-          fi
           TAG="${{ inputs.project }}-${{ needs.calculate.outputs.tag }}"
+          gh release delete --cleanup-tag --yes $TAG || true
           gh release create --latest=true --notes=$TAG --title=$TAG $TAG ./dist/*.tar.gz
+          for i in $(gh release list --json=tagName --jq=".[] | select(.tagName | startswith(\"${{ inputs.project }}-\")) | .tagName" | head -n -3 || true); do
+            gh release delete --cleanup-tag --yes $i
+          done
         env:
           GH_TOKEN: ${{ github.token }}
 
   container:
     needs: [calculate, release]
+    permissions:
+      packages: write
     uses: ./.github/workflows/container.yaml
     with:
       project: ${{ inputs.project }}
