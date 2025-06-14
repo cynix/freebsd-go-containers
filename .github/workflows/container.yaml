@@ -13,13 +13,12 @@ on:
         type: string
         required: true
 
-permissions:
-  packages: write
-
 jobs:
   container:
     if: ${{ inputs.tag }}
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     strategy:
       matrix:
         container: ${{ fromJSON(inputs.containers) }}
@@ -54,3 +53,13 @@ jobs:
 
           run: |
             ./build.sh
+
+      - name: Cleanup
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          packages: ${{ matrix.container }}
+          keep-n-tagged: 3
+          exclude-tags: latest
+          delete-untagged: true
+          delete-ghost-images: true
+          delete-partial-images: true
