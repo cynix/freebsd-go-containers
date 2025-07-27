@@ -129,10 +129,10 @@ jobs:
       - name: Create release
         run: |
           TAG="${{ inputs.project }}-${{ needs.calculate.outputs.tag }}"
-          gh release delete --cleanup-tag --yes $TAG || true
+          gh release delete --cleanup-tag --yes $TAG || echo "No existing $TAG"
           gh release create --latest=true --notes=$TAG --title=$TAG $TAG ./dist/*.tar.gz
-          for i in $(gh release list --json=tagName --jq=".[] | select(.tagName | startswith(\"${{ inputs.project }}-\")) | .tagName" | head -n -3 || true); do
-            gh release delete --cleanup-tag --yes $i
+          for i in $(gh release list --json=tagName --jq="map(select(.tagName | startswith(\"${{ inputs.project }}-\")))[3:] | .[].tagName"); do
+            gh release delete --cleanup-tag --yes $i || echo "Could not delete $i"
           done
         env:
           GH_TOKEN: ${{ github.token }}
